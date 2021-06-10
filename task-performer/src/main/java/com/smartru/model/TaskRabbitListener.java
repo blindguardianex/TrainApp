@@ -18,7 +18,6 @@ public class TaskRabbitListener {
 
     @RabbitHandler
     public void receiveTask(Task task){
-        System.out.println("Число активных потоков:" + Thread.activeCount());
         performer.perform(task);
     }
 }

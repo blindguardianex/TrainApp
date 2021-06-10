@@ -1,31 +1,43 @@
 package com.smartru.service.redis;
 
-import com.smartru.service.redis.RedisTokenService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import redis.clients.jedis.Jedis;
+import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.exceptions.JedisConnectionException;
 
 @Slf4j
 @Service
 public class RedisTokenServiceImpl implements RedisTokenService {
 
-    private final Jedis jedis;
+    @Value("${jedis.keyvalid}")
+    private long keyValidTime;
+    private final JedisPool jedisPool;
 
     @Autowired
-    public RedisTokenServiceImpl(Jedis jedis) {
-        this.jedis = jedis;
+    public RedisTokenServiceImpl(JedisPool jedisPool) {
+        this.jedisPool = jedisPool;
     }
 
+
     @Override
-    public void addToken(long userId, String token){
-        jedis.set(String.valueOf(userId), token);
-        jedis.set(token, String.valueOf(userId));
+    public void addToken(String userId, String token){
+        try (Jedis jedis = jedisPool.getResource()){
+            jedis.setex(userId, keyValidTime, token);
+            jedis.setex(token, keyValidTime, userId);
+        } catch (JedisConnectionException ex){
+            throw new JedisConnectionException("Redis is not connected");
+        }
     }
 
     @Override
     public boolean tokenExists(String token) {
-        return jedis.exists(token);
+        try(Jedis jedis = jedisPool.getResource()){
+            return jedis.exists(token);
+        } catch (JedisConnectionException ex){
+            throw new JedisConnectionException("Redis is not connected");
+        }
     }
 }

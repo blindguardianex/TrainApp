@@ -3,6 +3,7 @@ package com.smartru.configuration;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Scope;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
@@ -17,10 +18,6 @@ public class JedisConfig {
     @Value("${jedis.port}")
     private int jedisPort;
 
-    @Bean
-    public Jedis jedis(JedisPool pool){
-        return pool.getResource();
-    }
 
     @Bean
     public JedisPool jedisPool(){

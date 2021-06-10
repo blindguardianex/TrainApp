@@ -115,7 +115,7 @@ public class JwtTokenProvider {
         try {
             Jws<Claims> claims = Jwts.parser().setSigningKey(secret).parseClaimsJws(token);
             if (claims.getBody().getExpiration().before(new Date())) {
-                log.error("Token is expired!");
+                log.warn("Token is expired!");
                 return false;
             }
             return checkTokenInRedis(token);
@@ -123,7 +123,7 @@ public class JwtTokenProvider {
             log.error("Redis server does not respond! Check token in mysql db");
             return checkTokenInDatabase(token);
         } catch (JwtException | IllegalArgumentException ex){
-            log.error("JWT token is expired or invalid");
+            log.warn("JWT token is expired or invalid");
             return false;
         }
     }

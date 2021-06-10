@@ -87,7 +87,7 @@ public class AuthenticationController {
             user.setRefreshToken(refreshToken);
             userService.update(user);
 
-            redisTokenService.addToken(user.getId(), accessToken);
+            redisTokenService.addToken(String.valueOf(user.getId()), accessToken);
         } catch (JedisConnectionException e){
             log.error("Server redis does not respond! Saving only mysql db");
         }

@@ -27,11 +27,11 @@ public class TaskServiceImplDef implements TaskService {
 
     @Override
     public Task update(Task task) {
-//        try {
-//            Thread.sleep(3000);
-//        } catch (InterruptedException e) {
-//            e.printStackTrace();
-//        }
+        try {
+            Thread.sleep(200);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
         Optional<Task> optTask = taskRepository.findById(task.getId());
         if (optTask.isPresent()){
             task=taskRepository.saveAndFlush(task);
