@@ -10,18 +10,17 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Component;
-import redis.clients.jedis.Jedis;
 import redis.clients.jedis.exceptions.JedisConnectionException;
 
 import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletRequest;
-import java.util.Base64;
-import java.util.Date;
-import java.util.UUID;
+import java.util.*;
 
+/**
+ * Класс, создающий и работающий с Jwt токенами
+ */
 @Slf4j
 @Component
 public class JwtTokenProvider {
@@ -45,30 +44,30 @@ public class JwtTokenProvider {
         secret = Base64.getEncoder().encodeToString(secret.getBytes());
     }
 
-    public String createAccessToken(User user){
-        Claims claims = Jwts.claims().setSubject(user.getLogin());
-        claims.put("id",user.getId());
-        claims.put("role", user.getRole());
 
-        Date now = new Date();
-        Date validateDate = new Date(now.getTime()+ sessionTime);
+    public Map<Object, Object> createTokens(User user){
+        String accessToken = createAccessToken(user);
+        String refreshToken = createRefreshToken(accessToken);
+        addTokensToUser(user,accessToken,refreshToken);
 
-        return Jwts.builder()
-                .setClaims(claims)
-                .setIssuedAt(now)
-                .setExpiration(validateDate)
-                .signWith(SignatureAlgorithm.HS256, secret)
-                .compact();
+        Map<Object, Object> tokenMap = new HashMap<>();
+        tokenMap.put("accessToken", accessToken);
+        tokenMap.put("refreshToken", refreshToken);
+
+        return tokenMap;
     }
 
-    public String createRefreshToken(String token){
-        String tokenTail = token.substring(token.length()-8);
-        String randomString = UUID.randomUUID().toString();
-        return tokenTail+"_"+randomString;
-    }
-
-    public boolean checkTokensRelation(String refreshToken, String accessToken){
-        return refreshToken.startsWith(accessToken.substring(accessToken.length()-8));
+    public Map<Object,Object> refreshTokens(String refreshToken, String accessToken){
+        if(validateRefreshToken(refreshToken,accessToken)){
+            String username = getLogin(accessToken);
+            User user = userService.getByUsername(username).orElseThrow(()->{
+                throw new UsernameNotFoundException("User with username: " + username + " not found");
+            });
+            if (refreshToken.equals(user.getRefreshToken())) {
+                return createTokens(user);
+            }
+        }
+        throw new JwtException("Incorrect refresh token");
     }
 
     public Authentication getAuthentication(String token){
@@ -92,17 +91,6 @@ public class JwtTokenProvider {
         }
     }
 
-    private UserDetails tokenToUserDetails(String token){
-        String login = getLogin(token);
-        String role = getRole(token);
-        UserDetails details = org.springframework.security.core.userdetails.User.builder()
-                .username(login)
-                .password("")
-                .authorities(role)
-                .build();
-        return details;
-    }
-
     public String resolveToken(HttpServletRequest req){
         String bearerToken = req.getHeader("Authorization");
         if (bearerToken!=null&&bearerToken.startsWith("Bearer_")){
@@ -111,7 +99,7 @@ public class JwtTokenProvider {
         return null;
     }
 
-    public boolean validateToken(String token){
+    public boolean validateAccessToken(String token){
         try {
             Jws<Claims> claims = Jwts.parser().setSigningKey(secret).parseClaimsJws(token);
             if (claims.getBody().getExpiration().before(new Date())) {
@@ -128,7 +116,39 @@ public class JwtTokenProvider {
         }
     }
 
-    private boolean checkTokenInRedis(String token) throws JedisConnectionException{
+    private String createAccessToken(User user){
+        Claims claims = Jwts.claims().setSubject(user.getLogin());
+        claims.put("id",user.getId());
+        claims.put("role", user.getRole());
+
+        Date now = new Date();
+        Date validateDate = new Date(now.getTime()+ sessionTime);
+
+        return Jwts.builder()
+                .setClaims(claims)
+                .setIssuedAt(now)
+                .setExpiration(validateDate)
+                .signWith(SignatureAlgorithm.HS256, secret)
+                .compact();
+    }
+
+    private String createRefreshToken(String token){
+        String tokenTail = token.substring(token.length()-8);
+        String randomString = UUID.randomUUID().toString();
+        return tokenTail+"_"+randomString;
+    }
+
+    private UserDetails tokenToUserDetails(String token){
+        String login = getLogin(token);
+        String role = getRole(token);
+        return org.springframework.security.core.userdetails.User.builder()
+                .username(login)
+                .password("")
+                .authorities(role)
+                .build();
+    }
+
+    private boolean checkTokenInRedis(String token){
             if (!redis.tokenExists(token)) {
                 log.error("Access token is invalid");
                 return false;
@@ -142,5 +162,21 @@ public class JwtTokenProvider {
             throw new UsernameNotFoundException("User with username: " + username + " not found. Token is broken");
         });
         return token.equals(user.getAccessToken());
+    }
+
+    private void addTokensToUser(final User user, String accessToken, String refreshToken){
+        try {
+            user.setAccessToken(accessToken);
+            user.setRefreshToken(refreshToken);
+            userService.update(user);
+
+            redis.addToken(String.valueOf(user.getId()), accessToken);
+        } catch (JedisConnectionException e){
+            log.error("Server redis does not respond! Saving only mysql db");
+        }
+    }
+
+    private boolean validateRefreshToken(String refreshToken, String accessToken){
+        return refreshToken.startsWith(accessToken.substring(accessToken.length()-8));
     }
 }

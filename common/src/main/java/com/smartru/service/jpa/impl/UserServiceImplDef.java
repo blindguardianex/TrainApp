@@ -2,6 +2,7 @@ package com.smartru.service.jpa.impl;
 
 import com.smartru.entity.User;
 import com.smartru.exceptions.EntityAlreadyExists;
+import com.smartru.exceptions.EntityNotFound;
 import com.smartru.repository.UserRepository;
 import com.smartru.service.jpa.UserService;
 import lombok.extern.slf4j.Slf4j;
@@ -51,6 +52,6 @@ public class UserServiceImplDef implements UserService {
             return user;
         }
         log.warn("IN update - user: {} is absent", user.getLogin());
-        throw new IllegalArgumentException("User is absent");
+        throw new EntityNotFound("User is absent");
     }
 }

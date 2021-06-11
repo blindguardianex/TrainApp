@@ -7,6 +7,10 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.ApplicationContext;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 
+/**
+ * Приложение, отвечающее за аутентификацию/авторизацию пользователя
+ * и прием задач от него
+ */
 @Slf4j
 @SpringBootApplication
 @EnableJpaAuditing

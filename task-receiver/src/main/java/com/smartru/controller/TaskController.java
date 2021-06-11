@@ -33,12 +33,10 @@ public class TaskController {
         this.taskRabbitService = taskRabbitService;
     }
 
-    @Transactional
     @PostMapping("add")
     public ResponseEntity addTask(@RequestBody Task task){
         task = taskService.add(task);
         taskRabbitService.sendTask(task);
-
         return new ResponseEntity(HttpStatus.OK);
     }
 }

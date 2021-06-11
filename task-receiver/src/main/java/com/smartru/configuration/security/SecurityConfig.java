@@ -17,14 +17,13 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
     private static final String[] PERMIT_ALL_ENDPOINTS = new String[]{"/api/sign",
-            "/api/refresh_token"};
-    private static final String[] AUTHENTICATED_ENDPOINTS = new String[]{"/api/test/auth",
-            "/api/task/add"};
+                                                                    "/api/refresh_token"};
+    private static final String[] AUTHENTICATED_ENDPOINTS = new String[]{"/api/task/add",
+                                                                    "/api/test/auth"};
     private static final String[] ADMIN_ENDPOINTS = new String[]{"/api/for_admin"};
 
     @Autowired
     private UserDetailsService detailsService;
-
     @Autowired
     private JwtTokenFilter jwtTokenFilter;
 
@@ -51,13 +50,13 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .csrf().disable()
                 .addFilterBefore(jwtTokenFilter, UsernamePasswordAuthenticationFilter.class)
                 .authorizeRequests()
-                .antMatchers(PERMIT_ALL_ENDPOINTS)
-                .permitAll()
-                .antMatchers(AUTHENTICATED_ENDPOINTS)
-                .authenticated()
-                .antMatchers(ADMIN_ENDPOINTS)
-                .hasAuthority("ADMIN")
-                .anyRequest()
-                .denyAll();
+                    .antMatchers(PERMIT_ALL_ENDPOINTS)
+                        .permitAll()
+                    .antMatchers(AUTHENTICATED_ENDPOINTS)
+                        .authenticated()
+                    .antMatchers(ADMIN_ENDPOINTS)
+                        .hasAuthority("ADMIN")
+                    .anyRequest()
+                        .denyAll();
     }
 }

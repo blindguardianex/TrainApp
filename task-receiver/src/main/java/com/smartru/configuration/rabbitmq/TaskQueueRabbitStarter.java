@@ -6,6 +6,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+/**
+ * Класс, декларирующий очередь сообщений Task перед началом выполнения
+ * приложения
+ */
 @Slf4j
 @Service
 public class TaskQueueRabbitStarter {

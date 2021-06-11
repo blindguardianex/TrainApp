@@ -10,6 +10,10 @@ import javax.persistence.*;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 
+/**
+ * Сущность-результат выполнения Task
+ * @see com.smartru.entity.Task
+ */
 @Setter
 @Entity
 @Table(name = "task_results")
